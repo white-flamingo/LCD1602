@@ -1,0 +1,243 @@
+C51 COMPILER V9.01   1602FINAL                                                             10/08/2020 12:50:58 PAGE 1   
+
+
+C51 COMPILER V9.01, COMPILATION OF MODULE 1602FINAL
+OBJECT MODULE PLACED IN 1602final.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE 1602final.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          #include <reg52.h>
+   2          #include <intrins.h>  
+   3          #include <math.h>   
+   4          #include <stdio.h>   
+   5          
+   6          #define uchar unsigned char
+   7          #define uint unsigned int
+   8                  
+   9          
+  10          //LCD定义
+  11          #define LCD_DB P0 
+  12          sbit LCD_RS=P2^6;   
+  13          sbit LCD_RW=P2^5;  
+  14          sbit LCD_E=P2^7;  
+  15          
+  16          
+  17          sbit K1=P3^1; 
+  18          sbit K2=P3^0; 
+  19          sbit K4=P3^3; 
+  20          bit flag=1;
+  21          
+  22          uint Year=2020;
+  23          uint Mon=10;
+  24          uint Day=8;
+  25          uchar Mode=0;
+  26          /*-------------------------------------
+  27                                     函数申明
+  28          ---------------------------------------*/
+  29          void LCD_init(void);                          //初始化函数 
+  30          void LCD_write_command(uchar command);        //写指令函数 
+  31          void LCD_write_data(uchar dat);               //写数据函数  
+  32          void LCD_disp_char(uchar x,uchar y,uchar dat);//在某个屏幕位置上显示一个字符,X（0-15),y(1-2)  
+  33          void LCD_disp_str(uchar x,uchar y,uchar *str); //LCD1602显示字符串函数 
+  34          void delay_n10us(uint n);                     //延时函数
+  35          /*-------------------------------------
+  36                                     LCD1602子程序
+  37          ---------------------------------------*/
+  38          void LCD_init(void) 
+  39          {  
+  40   1              delay_n10us(10);  
+  41   1              LCD_write_command(0x38);//设置8位格式，2行，5x7 
+  42   1              delay_n10us(10);  LCD_write_command(0x0c);//开显示，关光标，不闪烁 
+  43   1              delay_n10us(10);  LCD_write_command(0x06);//设定输入方式，增量不移位 
+  44   1              delay_n10us(10);  LCD_write_command(0x01);//清除屏幕显示  
+  45   1              delay_n10us(100);       //延时清屏，延时函数，延时约n个10us 
+  46   1      }
+  47          
+  48          void LCD_write_command(uchar dat) 
+  49          {  
+  50   1              delay_n10us(10);  
+  51   1              LCD_RS=0;         //指令 
+  52   1              LCD_RW=0;         //写入 
+  53   1              LCD_E=1;          //允许 
+  54   1              LCD_DB=dat;  delay_n10us(10);  //实践证明，我的LCD1602上，用for循环1次就能完成普通写指令。 
+  55   1              LCD_E=0;  delay_n10us(10);  //实践证明，我的LCD1602上，用for循环1次就能完成普通写指令。 
+C51 COMPILER V9.01   1602FINAL                                                             10/08/2020 12:50:58 PAGE 2   
+
+  56   1      }
+  57          
+  58          void LCD_write_data(uchar dat) 
+  59          {  
+  60   1              delay_n10us(10);  
+  61   1              LCD_RS=1;          //数据 
+  62   1              LCD_RW=0;                  //写入
+  63   1              LCD_E=1;           //允许 
+  64   1              LCD_DB=dat; delay_n10us(10);
+  65   1               LCD_E=0;  delay_n10us(10); 
+  66   1      }
+  67          
+  68          void LCD_disp_char(uchar x,uchar y,uchar dat) 
+  69          {    
+  70   1              uchar address;   
+  71   1              if(y==1)           
+  72   1              address=0x80+x;  
+  73   1              else           
+  74   1              address=0xc0+x;    
+  75   1              LCD_write_command(address);   
+  76   1              LCD_write_data(dat); 
+  77   1      }
+  78          
+  79          void LCD_disp_str(uchar x,uchar y,uchar *str) 
+  80          {    
+  81   1              uchar address;   
+  82   1              if(y==1)           
+  83   1              address=0x80+x;   
+  84   1              else           
+  85   1              address=0xc0+x;    
+  86   1              LCD_write_command(address);   
+  87   1              while(*str!='\0')   
+  88   1                      {       
+  89   2                      LCD_write_data(*str);
+  90   2                      str++;
+  91   2                      }
+  92   1      }
+  93          
+  94          void delay_n10us(uint n)  //延时 
+  95          {                 
+  96   1              uint i;                    
+  97   1              for(i=n;i>0;i--)            
+  98   1               {         
+  99   2               nop_();_nop_();_nop_();_nop_();_nop_();_nop_();    
+ 100   2               } 
+ 101   1      }
+ 102          
+ 103          /*-------------------------------------
+ 104                                      按键检测
+ 105          ---------------------------------------*/       
+ 106          void key()
+ 107          {
+ 108   1              if(K1==0)
+ 109   1              {
+ 110   2                      if(flag==1)
+ 111   2                      {
+ 112   3                              flag=0;
+ 113   3                              if(Mode==0)
+ 114   3                              {
+ 115   4                                      if(Year<9999)
+ 116   4                                      {
+ 117   5                                              Year++;
+C51 COMPILER V9.01   1602FINAL                                                             10/08/2020 12:50:58 PAGE 3   
+
+ 118   5                                      }
+ 119   4                              }       
+ 120   3                              else if(Mode==1)
+ 121   3                              {
+ 122   4                                      if(Mon<12)
+ 123   4                                      {
+ 124   5                                              Mon++;
+ 125   5                                      }
+ 126   4                              }
+ 127   3                              else if(Mode==2)
+ 128   3                              {
+ 129   4                                      if(Day<31)
+ 130   4                                      {
+ 131   5                                              Day++;
+ 132   5                                      }
+ 133   4                              }       
+ 134   3                      }
+ 135   2              }
+ 136   1              else if(K2==0)
+ 137   1              {
+ 138   2                      if(flag==1)
+ 139   2                      {
+ 140   3                              flag=0;
+ 141   3                              if(Mode==0)
+ 142   3                              {
+ 143   4                                      if(Year>0)
+ 144   4                                      {
+ 145   5                                              Year--;
+ 146   5                                      }
+ 147   4                              }
+ 148   3                              else if(Mode==1)
+ 149   3                              {
+ 150   4                                      if(Mon>1)
+ 151   4                                      {
+ 152   5                                              Mon--;
+ 153   5                                      }
+ 154   4                              }               
+ 155   3                              else if(Mode==2)
+ 156   3                              {
+ 157   4                                      if(Day>1)
+ 158   4                                      {
+ 159   5                                              Day--;
+ 160   5                                      }
+ 161   4                              }
+ 162   3                      }
+ 163   2              }
+ 164   1              else if(K4==0)
+ 165   1              {
+ 166   2                      if(flag==1)
+ 167   2                      {
+ 168   3                              flag=0;
+ 169   3                              if(Mode<2)
+ 170   3                              {
+ 171   4                                      Mode++;
+ 172   4                              }
+ 173   3                              else
+ 174   3                              {
+ 175   4                                      Mode=0;
+ 176   4                              }
+ 177   3                      }
+ 178   2              }
+ 179   1              else
+C51 COMPILER V9.01   1602FINAL                                                             10/08/2020 12:50:58 PAGE 4   
+
+ 180   1              {
+ 181   2                      flag=1;
+ 182   2              }
+ 183   1      }
+ 184          /*-------------------------------------
+ 185                                      液晶显示
+ 186          ---------------------------------------*/       
+ 187          void display()
+ 188          {
+ 189   1              LCD_disp_char(3,2,Year/1000+'0'); 
+ 190   1              LCD_disp_char(4,2,Year/100%10+'0'); 
+ 191   1              LCD_disp_char(5,2,Year/10%10+'0'); 
+ 192   1              LCD_disp_char(6,2,Year%10+'0'); 
+ 193   1              
+ 194   1              LCD_disp_char(8,2,Mon/10+'0'); 
+ 195   1              LCD_disp_char(9,2,Mon%10+'0'); 
+ 196   1              
+ 197   1              LCD_disp_char(11,2,Day/10+'0'); 
+ 198   1              LCD_disp_char(12,2,Day%10+'0'); 
+ 199   1      }
+ 200          /*-------------------------------------
+ 201                                      主函数
+ 202          ---------------------------------------*/       
+ 203          void main(void)
+ 204          {
+ 205   1              
+ 206   1              LCD_init();//LCD初始化              
+ 207   1              LCD_disp_str(0,1,"designer lpx khr"); //显示 
+ 208   1              LCD_disp_str(0,2,"   2020-10-08   "); //显示 
+ 209   1              while(1)
+ 210   1              {
+ 211   2                      key();
+ 212   2                      display();
+ 213   2              }
+ 214   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    622    ----
+   CONSTANT SIZE    =     34    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      7       8
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
